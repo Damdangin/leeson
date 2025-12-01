@@ -2,7 +2,9 @@ import BLOCKS from "./blocks.js"
 
 //DOM
 const playground = document.querySelector(".playground > ul");
-
+const gameText = document.querySelector(".game-text");
+const scoreDisplay = document.querySelector(".score");
+const restartButton = document.querySelector(".game-text > button")
 //Setting
 const GAME_ROWS = 20;
 const GAME_COLS = 10;
@@ -26,7 +28,7 @@ init()
 
 // functions
 function init() {
-    tempMovingItem = { ...movingItem};
+    tempMovingItem = { ...movingItem };
 
     for (let i = 0; i < GAME_ROWS; i++) {
          prependNewLine()
@@ -65,8 +67,12 @@ function renderBlocks(moveType = "") {
             target.classList.add(type, "moving")
         } else {
             tempMovingItem = { ...movingItem }
+            if(moveType === 'retry') {
+                clearInterval(downInterval)
+                showGameoverText()
+            }
             setTimeout( ()=> {
-                renderBlocks()
+                renderBlocks('retry')
                 if(moveType === "top") {
                     seizeBlock();
                 }
@@ -85,12 +91,31 @@ function seizeBlock() {
         moving.classList.remove("moving");
         moving.classList.add("seized");
     })
+    checkMatch()
+}
+
+function checkMatch() {
+    const childNodes = playground.childNodes;
+    childNodes.forEach(child => {
+        let matched = true;
+        child.children[0].childNodes.forEach(li => {
+            if(!li.classList.contains("seized")) {
+                matched = false;
+            }
+        })
+        if(matched) {
+            child.remove();
+            prependNewLine()
+            score++;
+            scoreDisplay.innerText = score;
+        }
+    })
     generateNewBlock()
 }
 
-function generateNewBlock() {
+function generateNewBlock() { 
 
-    clearInterval(downInterval);
+    clearInterval(downInterval);  //블럭 자동으로 내려오도록 설정
     downInterval = setInterval(() => {
         moveBlock('top', 1)
     }, duration)
@@ -118,10 +143,21 @@ function moveBlock(moveType, amount) {
     renderBlocks(moveType)
 }
 
-function chageDirection() {
+function changeDirection() {
     const direction = tempMovingItem.direction;
     direction === 3 ? tempMovingItem.direction = 0 : tempMovingItem.direction += 1;
     renderBlocks()
+}
+
+function dropBlock() {
+    clearInterval(downInterval);
+    downInterval = setInterval(() => {
+        moveBlock("top", 1)
+    }, 10)
+}
+
+function showGameoverText() {
+    gameText.style.display = "flex"
 }
 
 // event handling
@@ -136,11 +172,20 @@ document.addEventListener("keydown", e=> {
         case 40:
             moveBlock("top", 1);
             break;
+        case 88:
+            changeDirection();
+            break;
         case 90:
-            chageDirection();
+            dropBlock();
             break;
         default:
             break;
     }
-    console.log(e)
+    //console.log(e)
+})
+
+restartButton.addEventListener("click", () => {
+    playground.innerHTML = "";
+    gameText.style.display = "none";
+    init()
 })
